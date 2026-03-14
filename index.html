@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dijkstra Shortest Path Demo</title>
+</head>
+<body>
+  <h2>Dijkstra Shortest Path Demo</h2>
+  <button onclick="run()">Find Path</button>
+  <pre id="output"></pre>
+
+  <script>
+    const csvData = `
+Node A,Node B,Distance
+1,2,20
+2,27,5
+2,L1_4,5
+2,3,5
+27,23,40
+23,24,15
+24,26,15
+26,25,15
+24,25,15
+25,L1_28,10
+L1_4,27,5
+L1_4,5,8
+5,6,35
+6,A,3
+A,22,5
+A,21,4
+A,L1_20,15
+A,L1_7,3
+L1_7,L1_B,5
+L1_B,8,5
+L1_B,C,4
+C,18,5
+C,17,7
+C,14,5
+15,L1_16,6
+L1_16,17,10
+17,18,10
+14,15,10
+8,9,3
+9,19,5
+9,11,3
+9,10,5
+9,12,8
+10,L1_13,10
+12,L1_13,6
+11,L1_13,12
+9,L1_19,3
+23,22,5
+L1_7,L2_7,100
+L1_16,L2_16,100
+L1_19,L2_19,100
+L1_13,L2_13,100
+L1_B,L2_B,100
+29,L2_16,15
+16,30,15
+30,29,15
+30,31,10
+29,L2_B,15
+31,L2_B,10
+L2_19,31,10
+L2_19,32,10
+L2_19,33,20
+32,33,18
+32,L2_13,15
+L1_28,L4_28,300
+L4_28,34,2
+34,37,5
+37,35,20
+35,36,5
+36,38,5
+L1_4,L4_4,300
+L4_4,38,3
+L4_28,L5_28,100
+L5_28,39,30
+39,40,5
+40,41,5
+L4_4,L5_4,100
+L5_4,41,3
+L2_16,L3_16,100
+L2_7,L3_7,100
+L2_16,L3_16,100
+L2_19,L3_19,100
+L2_13,L3_13,100
+L2_B,L3_B,100
+L3_7,42,3
+42,L3_B,5
+L3_B,47,8
+47,L3_13,15
+L3_B,45,5
+45,L3_19,5
+L3_19,40,5
+L3_B,43,10
+43,48,10
+43,44,5
+43,45,7
+43,L3_16,7
+48,L3_16,5
+L3_19,46,5
+`.trim();
+
+    const graph = {};
+
+    function addEdge(u, v, w) {
+      if (!graph[u]) graph[u] = {};
+      if (!graph[v]) graph[v] = {};
+      graph[u][v] = w;
+      graph[v][u] = w;
+    }
+
+    function loadGraphFromCsv(csv) {
+      const lines = csv.split(/\r?\n/);
+      for (let i = 1; i < lines.length; i++) { // skip header
+        const row = lines[i].split(",");
+        const a = row[0].trim();
+        const b = row[1].trim();
+        const w = Number(row[2].trim());
+        if (!a || !b || !Number.isFinite(w)) continue;
+        addEdge(a, b, w);
+      }
+    }
+
+    loadGraphFromCsv(csvData);
+    console.log("graph[\"27\"] =", graph["27"]);
+    console.log("graph[\"23\"] =", graph["23"]);
+
+    function dijkstra(start, end) {
+      const distances = {};
+      const previous = {};
+      const visited = new Set();
+
+      Object.keys(graph).forEach(node => {
+        distances[node] = Infinity;
+        previous[node] = null;
+      });
+
+      if (!graph[start] || !graph[end]) {
+        return { path: [], distance: Infinity };
+      }
+
+      distances[start] = 0;
+
+      while (true) {
+        let current = null;
+        let currentDist = Infinity;
+
+        for (const node of Object.keys(graph)) {
+          if (!visited.has(node) && distances[node] < currentDist) {
+            currentDist = distances[node];
+            current = node;
+          }
+        }
+
+        if (current === null) break;
+        if (current === end) break;
+
+        visited.add(current);
+
+        for (const neighbor in graph[current]) {
+          const weight = graph[current][neighbor];
+          const newDist = distances[current] + weight;
+          if (newDist < distances[neighbor]) {
+            distances[neighbor] = newDist;
+            previous[neighbor] = current;
+          }
+        }
+      }
+
+      if (distances[end] === Infinity) {
+        return { path: [], distance: Infinity };
+      }
+
+      const path = [];
+      let node = end;
+      while (node !== null) {
+        path.unshift(node);
+        node = previous[node];
+      }
+
+      return { path, distance: distances[end] };
+    }
+
+    function run() {
+      const start = prompt("Enter start node (e.g. 1, 27, A, L1_4):");
+      if (start === null) return;
+      const end = prompt("Enter end node (e.g. 24, 23, C, L1_13):");
+      if (end === null) return;
+
+      const s = start.trim();
+      const e = end.trim();
+
+      const result = dijkstra(s, e);
+      const outEl = document.getElementById("output");
+
+      if (result.distance === Infinity || result.path.length === 0) {
+        outEl.textContent = "No path found between " + s + " and " + e;
+      } else {
+        outEl.textContent =
+          "Shortest path from " + s + " to " + e + ":\n" +
+          result.path.join(" -> ") +
+          "\nTotal distance: " + result.distance;
+      }
+
+      console.log(result);
+    }
+  </script>
+</body>
+</html>
